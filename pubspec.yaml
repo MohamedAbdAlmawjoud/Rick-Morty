@@ -15,6 +15,13 @@ dependencies:
   flutter_offline: ^6.0.0
   flutter_svg: ^2.3.0
   meta: ^1.18.3
+  flutter_launcher_icons: ^0.14.4
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icons/app_icon.png"
+  remove_alpha_ios: true
   
 
 dev_dependencies:
