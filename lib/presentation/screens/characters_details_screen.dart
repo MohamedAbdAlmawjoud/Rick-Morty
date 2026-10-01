@@ -99,7 +99,7 @@ class CharactersDetails extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 500),
+              const SizedBox(height: 600),
             ]),
           ),
         ],
