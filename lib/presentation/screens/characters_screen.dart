@@ -1,4 +1,7 @@
-import 'package:flutter_offline/flutter_offline.dart';
+import 'dart:async';
+import 'dart:io';
+
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:rick_and_morty/constants/colors.dart';
 import 'package:rick_and_morty/data/models/characters_model.dart';
@@ -6,6 +9,7 @@ import 'package:rick_and_morty/logic/cubit/characters_cubit.dart';
 import 'package:rick_and_morty/presentation/widgets/character_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
 
 class CharactersScreen extends StatefulWidget {
   const CharactersScreen({super.key});
@@ -19,6 +23,10 @@ class _CharactersScreenState extends State<CharactersScreen> {
   late List<CharactersModel> searchedForCharacters;
   bool _isSearching = false;
   final _searchTextController = TextEditingController();
+  final Connectivity _connectivity = Connectivity();
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
+  Timer? _connectivityCheckTimer;
+  bool _hasConnection = true;
 
   Widget _buildSearchField() {
     return TextField(
@@ -92,6 +100,47 @@ class _CharactersScreenState extends State<CharactersScreen> {
   void initState() {
     super.initState();
     BlocProvider.of<CharactersCubit>(context).getAllCharacters();
+    _checkConnectivity();
+    _connectivitySubscription = _connectivity.onConnectivityChanged.listen(
+      (_) => _checkConnectivity(),
+    );
+    // A Wi-Fi or mobile connection can remain active while its internet
+    // access has been lost, so connectivity_plus alone is not sufficient.
+    _connectivityCheckTimer = Timer.periodic(
+      const Duration(seconds: 5),
+      (_) => _checkConnectivity(),
+    );
+  }
+
+  Future<void> _checkConnectivity() async {
+    var hasConnection = false;
+    Socket? socket;
+    try {
+      final connectivity = await _connectivity.checkConnectivity();
+      if (!connectivity.contains(ConnectivityResult.none)) {
+        socket = await Socket.connect(
+          'rickandmortyapi.com',
+          443,
+          timeout: const Duration(seconds: 3),
+        );
+        hasConnection = true;
+      }
+    } catch (_) {
+      // Treat DNS, socket, and platform-specific probe failures as offline.
+      hasConnection = false;
+    } finally {
+      socket?.destroy();
+    }
+    if (!mounted || hasConnection == _hasConnection) return;
+    setState(() => _hasConnection = hasConnection);
+  }
+
+  @override
+  void dispose() {
+    _connectivitySubscription?.cancel();
+    _connectivityCheckTimer?.cancel();
+    _searchTextController.dispose();
+    super.dispose();
   }
 
   Widget buildBlocWidget() {
@@ -152,7 +201,7 @@ class _CharactersScreenState extends State<CharactersScreen> {
             'No Internet Connection',
             style: TextStyle(
               fontSize: 20,
-              color: AppColors.background,
+              color: AppColors.text,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -170,22 +219,7 @@ class _CharactersScreenState extends State<CharactersScreen> {
         title: _isSearching ? _buildSearchField() : _buildAppBarTitle(),
         actions: _buildAppBarActions(),
       ),
-      body: OfflineBuilder(
-        connectivityBuilder: (
-          BuildContext context,
-          List<ConnectivityResult> connectivity,
-          Widget child,
-        ) {
-              final bool connected = !connectivity.contains(ConnectivityResult.none);
-
-              if (connected) {
-                return buildBlocWidget();
-              } else {
-                return _buildNoInternetWidget();
-              }
-            },
-        child: showLoadingIndicator(),
-      ),
+      body: _hasConnection ? buildBlocWidget() : _buildNoInternetWidget(),
       backgroundColor: AppColors.background,
     );
   }
