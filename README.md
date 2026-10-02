@@ -24,7 +24,7 @@ The app consumes data from the **Rick and Morty API** and uses **BLoC** for stat
 | **BLoC**            | State management                     |
 | **Dio**             | HTTP requests and API communication  |
 | **Flutter BLoC**    | Connecting BLoC with Flutter widgets |
-| **Flutter Offline** | Network connectivity handling        |
+| **connectivity_plus** | Network connectivity handling        |
 | **Flutter SVG**     | Rendering SVG assets                 |
 
 ## 🌐 API
@@ -74,7 +74,7 @@ The project uses the following main packages:
 bloc: ^9.1.1
 dio: ^5.11.1
 flutter_bloc: ^9.1.1
-flutter_offline: ^6.0.0
+connectivity_plus: ^7.3.1
 flutter_svg: ^2.3.0
 meta: ^1.18.3
 ```
